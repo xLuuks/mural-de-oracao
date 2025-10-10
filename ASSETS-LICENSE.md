@@ -1,12 +1,7 @@
 Licença de Assets e Atribuição
 
-Resumo
-- O código deste repositório é licenciado sob MIT (veja LICENSE).
-- Os assets visuais NÃO estão cobertos pela licença MIT, salvo indicação expressa.
-- Elementos de marca/identidade do Instituto Bíblico do Norte (IBN) são proprietários e possuem todos os direitos reservados ao IBN.
-- Cada família de assets abaixo possui termos próprios. A redistribuição e o reuso podem ser restritos.
-
 Famílias de assets
+
 1) Logo do Instituto Bíblico do Norte
    - Caminho: img/ibn-header.png (e quaisquer derivados)
    - Titular: Instituto Bíblico do Norte (IBN)
@@ -22,7 +17,7 @@ Famílias de assets
      • Qualquer uso externo deve cumprir os termos da Canva: https://www.canva.com/policies/content-license/
 
 3) Outras imagens
-   - Quaisquer outras imagens sob img/ que não estejam explicitamente marcadas como MIT permanecem “Todos os direitos reservados” pelos respectivos autores/detentores de direito.
+   - Quaisquer outras imagens sob img/ permanecem “Todos os direitos reservados” pelos respectivos autores/detentores de direito.
 
 O que você PODE fazer
 - Clonar e executar este projeto incluindo seus assets como parte do aplicativo completo, conforme publicado pelo titular do repositório.
@@ -39,4 +34,3 @@ Atribuição
 
 Contato
 - Dúvidas sobre uso de assets, permissões ou solicitações de remoção: ibnmidia1945@gmail.com
-
