@@ -1,62 +1,40 @@
-# Mural de Oracao
+# Mural de Oração
 
-Mural interativo para registrar e acompanhar pedidos de oracao. Visitantes podem enviar pedidos com pre‑visualizacao, escolher cor e fixador (post‑it), ver intercessores e registrar oracoes. Ha modo administrador (Firebase Auth) para editar, finalizar e moderar atualizacoes. Os dados sao salvos em tempo real no Firestore.
+Mural interativo para registrar e acompanhar pedidos de oração. Visitantes podem enviar pedidos (com pré‑visualização em tempo real), escolher cor do post‑it e fixador (pin), ver intercessores e registrar orações. Há modo administrador (Firebase Auth) para editar, finalizar e moderar atualizações. Os dados são salvos em tempo real no Firestore (Cloud Firestore).
 
-Principais recursos
-- Envio de pedidos com pre‑visualizacao ao digitar
-- Contador de intercessoes e lista de intercessores
-- Atualizacoes enviadas pelos usuarios para revisao do admin
-- Modo administrador para editar/finalizar/remover pedidos
+## Recursos
+- Envio de pedidos com pré‑visualização ao digitar
+- Contador e lista de intercessores (com prevenção de múltiplos registros por usuário local)
+- Atualizações de pedidos enviadas pelos usuários para revisão do admin
+- Painel lateral de atualizações para o admin (marcar como lida/recusar)
+- Modo administrador: editar texto do post‑it, finalizar e remover pedidos
+- UX mobile aprimorada (empilhamento de formulário/preview e botão de envio dedicado)
 
-## Deploy no GitHub Pages
+## Tecnologias
+- HTML/CSS/JS puro (sem build)
+- Firebase compat SDK (via CDN): Auth + Firestore
+- GitHub Pages para deploy estático
 
-Este projeto e estatico (HTML/CSS/JS), ideal para publicar no GitHub Pages.
-
-1) Subir para o GitHub
-- Envie os arquivos: `index.html`, `style.css`, `script.js`, pasta `img/`, `.nojekyll` e este `README.md`.
-
-2) Habilitar GitHub Pages
-- Settings → Pages → Branch: `main` e Folder: `/root` (ou `/docs`).
-- Aguarde alguns minutos ate o link ficar ativo.
-
-Observacao: usamos caminhos relativos (ex.: `style.css`, `script.js`, `img/...`), entao funciona bem em “project pages”. O arquivo `.nojekyll` evita processamento Jekyll.
-
-3) Autorizar dominio no Firebase (Auth)
-- Firebase Console → Authentication → Settings → Authorized domains → Add domain.
-- Adicione `seuusuario.github.io` (e o seu dominio custom, se usar). Para testes locais, inclua `localhost` e/ou `127.0.0.1`.
-
-4) Regras do Firestore (seguranca)
-Exemplo (troque o UID do admin):
-
+## Estrutura de pastas
 ```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    function isAdmin() { return request.auth != null && request.auth.uid == 'qIxfD3Xeu7SvKGb9zf6APMhpFow2'; }
-
-    match /pedidos/{id} {
-      allow read: if true;                 // publico le
-      allow create: if true;               // publico cria
-      allow update, delete: if isAdmin();  // so admin altera/apaga
-    }
-
-    match /updates/{id} {
-      allow read: if isAdmin();            // so admin ve a fila
-      allow create: if true;               // publico envia atualizacao
-      allow update: if isAdmin();          // admin marca como lida/recusada
-    }
-  }
-}
+/
+├─ index.html         # página principal
+├─ style.css          # estilos (inclui ajustes para mobile)
+├─ script.js          # lógica de UI + integração Firebase
+├─ img/               # imagens e ícones usados no site
+├─ .nojekyll          # evita processamento Jekyll no GitHub Pages
+└─ README.md          # este arquivo
 ```
 
-5) Checklist rapido
-- [ ] `.nojekyll` na raiz
-- [ ] Pages habilitado no branch correto
-- [ ] Dominio do Pages autorizado no Firebase Auth
-- [ ] Regras do Firestore revisadas
-- [ ] Teste de envio de pedido e painel admin em producao
+## Como usar
+- Clique em "Novo Pedido" para abrir o formulário.
+- Digite seu pedido; a pré‑visualização à direita (ou abaixo no mobile) vai se atualizando.
+- Escolha a cor do post‑it e o fixador (pin) e envie.
+- Nos cards, use "Desejo orar" para registrar uma oração. "Ver intercessores" mostra a lista.
+- Admin: use "Entrar como administrador", informe email/senha do admin. A interface mostra botões de editar/finalizar/remover e o painel de atualizações.
 
-6) Dicas
-- Evite abrir como `file://`; use um servidor local (ex.: `python -m http.server 5500`).
-- Se usar dominio custom no Pages, adicione-o tambem ao Firebase (Authorized domains).
-
+## Roadmap (ideias)
+- Filtro/pesquisa de pedidos
+- Modo escuro com `prefers-color-scheme`
+- Exportar pedidos (CSV/JSON)
+- Auditoria simples de ações de admin
