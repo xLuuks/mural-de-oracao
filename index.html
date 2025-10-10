@@ -1,0 +1,287 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mural de Oração</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Roboto&family=Patrick+Hand&display=swap" rel="stylesheet">
+</head>
+  <link rel="icon" type="image/png" href="img/icon.png">
+  <link rel="shortcut icon" type="image/png" href="img/icon.png">
+  <link rel="apple-touch-icon" href="img/icon.png">
+<body>
+  <header>
+    <img src="img/ibn-header.png" alt="Logo IBN" class="logo">
+    <h1>Mural de Oração</h1>
+    <p>Deixe seu pedido ou veja os pedidos já enviados.</p>
+    <div class="admin-actions">
+      <button id="adminToggle" class="admin-toggle" type="button" aria-label="Entrar como administrador">Entrar como administrador</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="form-section">
+      <button id="toggleForm" aria-expanded="false" aria-controls="pedidoForm">Novo Pedido</button>
+
+      <div class="form-preview-wrap" id="formPreviewWrap" style="display:none;">
+      <form id="pedidoForm">
+        <label for="nome" class="sr-only">Seu nome (opcional)</label>
+        <input type="text" id="nome" placeholder="Seu nome (opcional)">
+        <label for="cidade" class="sr-only">Sua cidade (opcional)</label>
+        <input type="text" id="cidade" placeholder="Sua cidade (opcional)">
+        <label for="pedido" class="sr-only">Escreva seu pedido</label>
+        <textarea id="pedido" placeholder="Escreva seu pedido..." required aria-describedby="pedidoHelp pedidoCount" maxlength="600" enterkeyhint="done"></textarea>
+        <div class="input-help">
+          <small id="pedidoHelp">Limite de 600 caracteres.</small>
+          <small id="pedidoCount">0/600</small>
+        </div>
+
+        <div class="options-row">
+          <div class="option-group">
+            <fieldset>
+              <legend>Cor do post-it</legend>
+              <div class="color-options" id="corOptions">
+                <label>
+                  <input type="radio" name="cor" value="#fff9c4" checked>
+                  <span class="color-circle" style="background:#fff9c4;"></span>
+                </label>
+                <label>
+                  <input type="radio" name="cor" value="#c8e6c9">
+                  <span class="color-circle" style="background:#c8e6c9;"></span>
+                </label>
+                <label>
+                  <input type="radio" name="cor" value="#bbdefb">
+                  <span class="color-circle" style="background:#bbdefb;"></span>
+                </label>
+                <label>
+                  <input type="radio" name="cor" value="#f8bbd0">
+                  <span class="color-circle" style="background:#f8bbd0;"></span>
+                </label>
+                <label>
+                  <input type="radio" name="cor" value="#ffe0b2">
+                  <span class="color-circle" style="background:#ffe0b2;"></span>
+                </label>
+              </div>
+            </fieldset>
+          </div>
+
+          <div class="option-group">
+            <fieldset>
+              <legend>Fixador</legend>
+              <div class="pin-models" id="pinModelOptions">
+                <label class="pin-model">
+                  <input type="radio" name="pinModelo" value="pin1">
+                  <img id="thumbPin1" src="img/pin1_vermelho.png" alt="Modelo pin 1">
+                </label>
+                <label class="pin-model">
+                  <input type="radio" name="pinModelo" value="pin2">
+                  <img id="thumbPin2" src="img/pin2_vermelho.png" alt="Modelo pin 2">
+                </label>
+              </div>
+              <div class="pin-colors">
+                <div class="color-options" id="pinColorOptions">
+                  <label>
+                    <input type="radio" name="pinCor" value="vermelho">
+                    <span class="color-circle" style="background:#d32f2f;"></span>
+                  </label>
+                  <label>
+                    <input type="radio" name="pinCor" value="amarelo">
+                    <span class="color-circle" style="background:#ffeb3b;"></span>
+                  </label>
+                  <label>
+                    <input type="radio" name="pinCor" value="azul">
+                    <span class="color-circle" style="background:#2196f3;"></span>
+                  </label>
+                  <label>
+                    <input type="radio" name="pinCor" value="laranja">
+                    <span class="color-circle" style="background:#ff9800;"></span>
+                  </label>
+                  <label>
+                    <input type="radio" name="pinCor" value="rosa">
+                    <span class="color-circle" style="background:#e91e63;"></span>
+                  </label>
+                  <label>
+                    <input type="radio" name="pinCor" value="roxo">
+                    <span class="color-circle" style="background:#9c27b0;"></span>
+                  </label>
+                  <label>
+                    <input type="radio" name="pinCor" value="verde">
+                    <span class="color-circle" style="background:#4caf50;"></span>
+                  </label>
+                </div>
+              </div>
+            </fieldset>
+          </div>
+        </div>
+
+        <button type="submit" id="btnEnviarPedido">Enviar Pedido</button>
+      </form>
+      <aside class="preview-pane" id="previewPane" aria-live="polite">
+        <h3 class="preview-title">Pré‑visualização</h3>
+        <div id="previewCardHost"></div>
+        <small class="preview-hint">Atualiza conforme você digita e seleciona.</small>
+      </aside>
+      <button type="button" id="btnEnviarPedidoMobile" class="btn-prim" aria-label="Enviar pedido (mobile)">Enviar Pedido</button>
+      </div>
+    </section>
+
+    <section id="mural">
+      <h2>Pedidos de Oração</h2>
+      <div id="listaPedidos"></div>
+    </section>
+  </main>
+
+  <!-- Modal Registrar Oração -->
+  <div id="modalOrar" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalOrarTitulo">
+    <div class="modal-backdrop" data-modal-close></div>
+    <div class="modal-content" role="document">
+      <button type="button" class="modal-close" aria-label="Fechar" data-modal-close>×</button>
+      <h3 id="modalOrarTitulo">Registrar oração</h3>
+      <p>Digite seu nome para se identificar. Deixe em branco para registrar como Anônimo.</p>
+      <form id="modalOrarForm">
+        <label for="modalNome" class="sr-only">Seu nome</label>
+        <input type="text" id="modalNome" placeholder="Seu nome (opcional)">
+        <div class="modal-actions">
+          <button type="button" class="btn-sec" id="modalCancelar">Cancelar</button>
+          <button type="submit" class="btn-prim" id="modalConfirmar">Registrar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Excluir Pedido -->
+  <div id="modalExcluir" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalExcluirTitulo">
+    <div class="modal-backdrop" data-modal-close></div>
+    <div class="modal-content" role="document">
+      <button type="button" class="modal-close" aria-label="Fechar" data-modal-close>×</button>
+      <h3 id="modalExcluirTitulo">Remover pedido</h3>
+      <p>Tem certeza que deseja remover este pedido? Esta ação não pode ser desfeita.</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-sec" id="modalExcluirCancelar">Cancelar</button>
+        <button type="button" class="btn-prim" id="modalExcluirConfirmar">Remover</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Admin -->
+  <div id="modalAdmin" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalAdminTitulo">
+    <div class="modal-backdrop" data-modal-close></div>
+    <div class="modal-content" role="document">
+      <button type="button" class="modal-close" aria-label="Fechar" data-modal-close>×</button>
+      <h3 id="modalAdminTitulo">Entrar como administrador</h3>
+      <p>Faça login de administrador para gerenciar exclusões.</p>
+      <form id="modalAdminForm">
+        <label for="modalAdminEmail" class="sr-only">E-mail</label>
+        <input type="email" id="modalAdminEmail" placeholder="E-mail do administrador" autocomplete="username" required>
+        <label for="modalAdminSenha" class="sr-only">Senha</label>
+        <input type="password" id="modalAdminSenha" placeholder="Senha" autocomplete="current-password" required>
+        <div class="modal-actions">
+          <button type="button" class="btn-sec" id="modalAdminCancelar">Cancelar</button>
+          <button type="submit" class="btn-prim" id="modalAdminEntrar">Entrar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Descartar Texto -->
+  <div id="modalDescartar" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalDescartarTitulo">
+    <div class="modal-backdrop" data-modal-close></div>
+    <div class="modal-content" role="document">
+      <button type="button" class="modal-close" aria-label="Fechar" data-modal-close>×</button>
+      <h3 id="modalDescartarTitulo">Descartar texto?</h3>
+      <p>Você tem um texto não enviado. Deseja descartá-lo e fechar o formulário?</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-sec" id="modalDescartarCancelar">Cancelar</button>
+        <button type="button" class="btn-prim" id="modalDescartarConfirmar">Descartar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Atualização de Pedido -->
+  <div id="modalUpdate" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalUpdateTitulo">
+    <div class="modal-backdrop" data-modal-close></div>
+    <div class="modal-content" role="document">
+      <button type="button" class="modal-close" aria-label="Fechar" data-modal-close>×</button>
+      <h3 id="modalUpdateTitulo">Enviar atualização do pedido</h3>
+      <p>Tem alguma informação nova sobre este pedido? Escreva abaixo e enviaremos para análise do administrador.</p>
+      <form id="modalUpdateForm">
+        <label for="modalUpdateMsg" class="sr-only">Mensagem de atualização</label>
+        <textarea id="modalUpdateMsg" placeholder="Digite sua atualização..." maxlength="800" required></textarea>
+        <div class="modal-actions">
+          <button type="button" class="btn-sec" id="modalUpdateCancelar">Cancelar</button>
+          <button type="submit" class="btn-prim" id="modalUpdateEnviar">Enviar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer>
+    <p>Desenvolvido por Lucas Augusto | Instituto Bíblico do Norte © 2025</p>
+  </footer>
+
+  <!-- Painel lateral de atualizações (admin) -->
+  <button id="adminUpdatesToggle" class="admin-updates-toggle hidden" aria-expanded="false" aria-controls="adminUpdates">Atualizações</button>
+  <aside id="adminUpdates" class="admin-updates hidden" aria-live="polite" aria-label="Atualizações pendentes">
+    <div class="admin-updates__header">
+      <strong>Atualizações pendentes</strong>
+      <button type="button" class="admin-updates__close" aria-label="Fechar">×</button>
+    </div>
+    <div id="adminUpdatesList" class="admin-updates__list"></div>
+  </aside>
+
+  <!-- Toasts -->
+  <!-- Modal Finalizar Pedido -->
+  <div id="modalFinalizar" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalFinalizarTitulo">
+    <div class="modal-backdrop" data-modal-close></div>
+    <div class="modal-content" role="document">
+      <button type="button" class="modal-close" aria-label="Fechar" data-modal-close>×</button>
+      <h3 id="modalFinalizarTitulo">Finalizar pedido?</h3>
+      <p>Confirma a finalização deste pedido?</p>
+      <div class="modal-actions">
+        <button type="button" class="btn-sec" id="modalFinalizarCancelar">Cancelar</button>
+        <button type="button" class="btn-prim" id="modalFinalizarConfirmar">Finalizar</button>
+      </div>
+    </div>
+  </div>
+  <!-- Modal Editar Pedido (admin) -->
+  <div id="modalEditar" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalEditarTitulo">
+    <div class="modal-backdrop" data-modal-close></div>
+    <div class="modal-content" role="document">
+      <button type="button" class="modal-close" aria-label="Fechar" data-modal-close>×</button>
+      <h3 id="modalEditarTitulo">Editar post-it</h3>
+      <form id="modalEditarForm">
+        <label for="modalEditarTexto" class="sr-only">Texto do post-it</label>
+        <textarea id="modalEditarTexto" placeholder="Edite o texto do post-it" maxlength="2000" required></textarea>
+        <div class="modal-actions">
+          <button type="button" class="btn-sec" id="modalEditarCancelar">Cancelar</button>
+          <button type="submit" class="btn-prim" id="modalEditarSalvar">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyD1iaPVDYOw-KQHV-582BtYSFewDiwHY1w",
+      authDomain: "mural-oracao-web.firebaseapp.com",
+      projectId: "mural-oracao-web",
+      storageBucket: "mural-oracao-web.firebasestorage.app",
+      messagingSenderId: "220145742483",
+      appId: "1:220145742483:web:e99aed24105a9c4bd85366"
+    };
+    if (!window.firebaseAppInitialized) {
+      firebase.initializeApp(firebaseConfig);
+      window.db = firebase.firestore();
+      window.firebaseAppInitialized = true;
+    }
+  </script>
+  <script src="script.js"></script>
+</body>
+</html>
