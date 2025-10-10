@@ -38,3 +38,15 @@ Mural interativo para registrar e acompanhar pedidos de oração. Visitantes pod
 - Modo escuro com `prefers-color-scheme`
 - Exportar pedidos (CSV/JSON)
 - Auditoria simples de ações de admin
+
+## Atribuição recomendada
+Embora o código esteja sob uma licença permissiva, recomenda‑se manter uma referência clara à origem do projeto ao reutilizar ou criar derivados:
+
+- Incluir no README ou em um arquivo `NOTICE` a nota:
+  - "Baseado em 'Mural de Oração' desenvolvido por Lucas Augusto para o Instituto Bíblico do Norte (IBN)."
+- Se houver uma página “Sobre” ou créditos na interface, opcionalmente exibir: "Mural de Oração — Instituto Bíblico do Norte" com link para o repositório original.
+- Respeitar as restrições de marca e imagens descritas em `ASSETS-LICENSE.md` (logo do IBN com direitos reservados e pinos/ícone sujeitos à licença da Canva).
+
+Documentos úteis:
+- Política e Termos: `Politica-e-Termos.md`
+- Licença de assets: `ASSETS-LICENSE.md`
