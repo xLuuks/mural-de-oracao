@@ -1,0 +1,13 @@
+.tools/
+__pycache__/
+*.pyc
+.env
+.env.*
+!.env.example
+node_modules/
+.netlify/
+script.js.bak-*
+script_utf8_tmp.js
+index_snapshot.txt
+snippet.txt
+__tmp_page.html

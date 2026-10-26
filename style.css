@@ -1,4 +1,4 @@
-﻿/* Reset */
+/* Reset */
 * {
   margin: 0;
   padding: 0;
@@ -7,10 +7,10 @@
 
 body {
   background:
-    radial-gradient(60rem 35rem at 10% 15%, rgba(123,201,144,0.18), transparent 60%),
-    radial-gradient(52rem 30rem at 90% 22%, rgba(70,152,108,0.14), transparent 55%),
-    radial-gradient(50rem 28rem at 50% 95%, rgba(70,152,108,0.10), transparent 60%),
-    #edf7f1;
+    radial-gradient(60rem 35rem at 10% 15%, rgba(92,166,116,0.20), transparent 60%),
+    radial-gradient(52rem 30rem at 90% 22%, rgba(44,110,73,0.16), transparent 55%),
+    radial-gradient(50rem 28rem at 50% 95%, rgba(44,110,73,0.12), transparent 60%),
+    #dfeee5;
   background-attachment: fixed, fixed, fixed, scroll;
   color: #333;
   padding: 20px;
@@ -289,50 +289,173 @@ main {
   border-radius: 8px;
   cursor: pointer;
   font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 6px 16px rgba(44, 110, 73, 0.22);
 }
 .admin-updates-toggle.hidden { display: none; }
+
+.admin-updates-toggle.has-pending {
+  background: #1f5a3b;
+  box-shadow: 0 8px 20px rgba(198, 40, 40, 0.22);
+}
+
+.admin-updates-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #c62828;
+  color: #fff;
+  border: 2px solid #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  line-height: 1;
+  font-weight: 800;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.24);
+}
+
+.admin-updates-badge.hidden {
+  display: none;
+}
 
 .admin-updates {
   position: fixed;
   right: 16px;
   top: 60px;
-  width: 320px;
+  width: 360px;
   max-width: calc(100vw - 32px);
   max-height: calc(100vh - 80px);
-  overflow: auto;
+  overflow: hidden;
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.2);
   z-index: 2400;
-  padding: 12px;
+  padding: 0;
 }
 .admin-updates.hidden { display: none; }
 .admin-updates__header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  gap: 10px;
+  padding: 14px 14px 10px 14px;
+  background: rgba(255,255,255,0.96);
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  color: #333;
 }
 .admin-updates__close {
   background: transparent;
   border: none;
   font-size: 1.2rem;
   cursor: pointer;
+  color: #333;
+  line-height: 1;
 }
 .admin-updates__list {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  max-height: calc(100vh - 138px);
+  overflow: auto;
+  padding: 12px;
 }
 .admin-update-item {
-  background: rgba(0,0,0,0.04);
-  border-radius: 8px;
-  padding: 10px;
+  background: #f7f8f5;
+  border: 1px solid rgba(44, 110, 73, 0.10);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: left;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
 }
-.admin-update-item .msg { font-size: 0.95rem; margin: 4px 0 8px 0; }
-.admin-update-item .meta { font-size: 0.8rem; color: #666; }
 
-.admin-update-item .snippet { font-size: 0.85rem; color: #444; margin: 2px 0 6px 0; }
+.admin-update-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-update-section + .admin-update-section {
+  margin-top: 10px;
+}
+
+.admin-update-section--message {
+  background: #fff;
+  border-left: 4px solid #2c6e49;
+  border-radius: 10px;
+  padding: 9px 10px;
+}
+
+.admin-update-label {
+  color: #2c6e49;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.admin-update-item .snippet,
+.admin-update-item .msg {
+  color: #333;
+  font-size: 0.95rem;
+  line-height: 1.28;
+  margin: 0;
+  word-break: break-word;
+}
+
+.admin-update-item .snippet {
+  color: #4d4d4d;
+}
+
+.admin-update-item .meta {
+  color: #6a6a6a;
+  font-size: 0.78rem;
+  line-height: 1.25;
+  margin-top: 10px;
+}
+
+.admin-update-item .actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.admin-update-action {
+  border: none;
+  border-radius: 9px;
+  min-height: 40px;
+  padding: 8px 10px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.admin-update-action--approve {
+  background: linear-gradient(135deg, #2c6e49, #46986C);
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(44, 110, 73, 0.22);
+}
+
+.admin-update-action--reject {
+  background: transparent;
+  color: #a12828;
+  border: 1px solid rgba(161, 40, 40, 0.35);
+}
+
+.admin-update-action:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+}
 
 /* Centraliza conteúdo do cartão somente na pré-visualização */
 .preview-pane .card-face,
@@ -402,10 +525,134 @@ form button:hover {
   transform: scale(1.03);
 }
 
+/* Filtro de período */
+.filter-section {
+  margin: 0 0 18px 0;
+}
+
+.filter-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px;
+  border-radius: 16px;
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.92), rgba(232,246,237,0.94)),
+    radial-gradient(18rem 10rem at 10% 0%, rgba(70,152,108,0.18), transparent 70%);
+  border: 1px solid rgba(44,110,73,0.14);
+  box-shadow: 0 12px 28px rgba(44,110,73,0.12);
+  overflow: hidden;
+}
+
+.filter-card::before {
+  content: "";
+  position: absolute;
+  inset: 8px;
+  border: 1px dashed rgba(44,110,73,0.16);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.filter-copy,
+.filter-controls {
+  position: relative;
+  z-index: 1;
+}
+
+.filter-eyebrow {
+  display: inline-flex;
+  margin-bottom: 4px;
+  color: #2c6e49;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.filter-copy h2 {
+  color: #2c6e49;
+  font-family: 'Merriweather', serif;
+  font-size: 1.25rem;
+  margin-bottom: 4px;
+}
+
+.filter-copy p {
+  color: #555;
+  font-size: 0.92rem;
+}
+
+.filter-controls {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) minmax(140px, 1.2fr) auto;
+  gap: 12px;
+  align-items: end;
+  min-width: min(100%, 430px);
+}
+
+.filter-controls label {
+  color: #2c6e49;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.filter-controls select {
+  width: 100%;
+  margin-top: 5px;
+  padding: 10px 34px 10px 12px;
+  border: 1px solid rgba(44,110,73,0.28);
+  border-radius: 10px;
+  background: #fff;
+  color: #333;
+  font-size: 0.96rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.06);
+}
+
+.filter-controls select:focus-visible {
+  outline: 3px solid rgba(70,152,108,0.28);
+  outline-offset: 2px;
+}
+
+.filter-controls select:disabled {
+  opacity: 0.58;
+  cursor: not-allowed;
+}
+
+.filter-show-all {
+  min-height: 42px;
+  padding: 10px 14px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #2c6e49, #46986C);
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 800;
+  white-space: nowrap;
+  box-shadow: 0 6px 14px rgba(44,110,73,0.18);
+}
+
+.filter-show-all[aria-pressed="true"] {
+  background: #fff;
+  color: #2c6e49;
+  border: 1px solid rgba(44,110,73,0.35);
+}
+
+.filter-show-all:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.03);
+}
+
 /* Mural */
 #mural {
-  background: url('img/textura-granito.jpg');
-  background-size: cover;
+  background-color: #c89259;
+  background-image: url('img/textura-granito.svg');
+  background-repeat: repeat;
+  background-size: 320px 320px;
+  background-position: center top;
   padding: 20px;
   border-radius: 12px;
   box-shadow: inset 0 0 10px rgba(0,0,0,0.2);
@@ -445,6 +692,18 @@ form button:hover {
 #mural h2::after {
   right: -15px;
   transform: rotate(5deg);
+}
+
+.mural-empty {
+  display: inline-block;
+  max-width: 560px;
+  margin: 8px auto 0 auto;
+  padding: 16px 18px;
+  border-radius: 10px;
+  background: #fffbea;
+  color: #555;
+  font-weight: 700;
+  box-shadow: 2px 4px 6px rgba(0,0,0,0.18);
 }
 
 
@@ -803,6 +1062,10 @@ footer {
   color: #666;
 }
 
+.footer-credit {
+  font-size: 0.78rem;
+}
+
 /* Responsivo */
 @media (max-width: 600px) {
   body {
@@ -1083,6 +1346,8 @@ footer {
   /* Stack form and preview vertically */
   .form-preview-wrap { flex-direction: column; gap: 12px; }
   .preview-pane { position: static; flex: 1 1 auto; width: 100%; }
+  .filter-card { flex-direction: column; align-items: stretch; gap: 14px; }
+  .filter-controls { grid-template-columns: 1fr; min-width: 0; }
 
   /* Comfortable reading and input sizes */
   body { font-size: 15px; }

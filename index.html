@@ -1,17 +1,31 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mural de Oração</title>
+  <meta name="description" content="Mural de Oração do Instituto Bíblico do Norte: envie e acompanhe pedidos, registre intercessões e veja atualizações.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Mural de Oração • IBN">
+  <meta property="og:url" content="https://muraldeoracao.netlify.app/">
+  <meta property="og:title" content="Mural de Oração – Instituto Bíblico do Norte">
+  <meta property="og:description" content="Envie seu pedido de oração, acompanhe os pedidos da comunidade e ore por quem precisa. Um espaço de fé e cuidado do Instituto Bíblico do Norte.">
+  <meta property="og:image" content="https://muraldeoracao.netlify.app/img/mural-de-oracao.png">
+  <meta property="og:image:type" content="image/png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Mural de Oração – Instituto Bíblico do Norte">
+  <meta name="twitter:description" content="Envie seu pedido de oração, acompanhe os pedidos da comunidade e ore por quem precisa. Um espaço de fé e cuidado do Instituto Bíblico do Norte.">
+  <meta name="twitter:image" content="https://muraldeoracao.netlify.app/img/mural-de-oracao.png">
+  <link rel="icon" type="image/png" href="img/icon.png">
+  <link rel="shortcut icon" type="image/png" href="img/icon.png">
+  <link rel="apple-touch-icon" href="img/icon.png">
   <link rel="stylesheet" href="style.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Roboto&family=Patrick+Hand&display=swap" rel="stylesheet">
 </head>
-  <link rel="icon" type="image/png" href="img/icon.png">
-  <link rel="shortcut icon" type="image/png" href="img/icon.png">
-  <link rel="apple-touch-icon" href="img/icon.png">
 <body>
   <header>
     <img src="img/ibn-header.png" alt="Logo IBN" class="logo">
@@ -128,6 +142,27 @@
       </div>
     </section>
 
+    <section id="filter-section" class="filter-section" aria-labelledby="filterTitle">
+      <div class="filter-card">
+        <div class="filter-copy">
+          <span class="filter-eyebrow">Filtrar mural</span>
+          <h2 id="filterTitle">Pedidos por período</h2>
+          <p id="filterSummary">Selecione um ano e mês para carregar os pedidos.</p>
+        </div>
+        <div class="filter-controls" aria-label="Filtro por ano e mês">
+          <label for="filterYear">
+            Ano
+            <select id="filterYear"></select>
+          </label>
+          <label for="filterMonth">
+            Mês
+            <select id="filterMonth"></select>
+          </label>
+          <button type="button" id="filterShowAll" class="filter-show-all" aria-pressed="false">Mostrar todos</button>
+        </div>
+      </div>
+    </section>
+
     <section id="mural">
       <h2>Pedidos de Oração</h2>
       <div id="listaPedidos"></div>
@@ -219,14 +254,19 @@
   </div>
 
   <footer>
-    <p>Desenvolvido por Lucas Augusto | Instituto Bíblico do Norte © 2025</p>
+    <p>© 2026 Instituto Bíblico do Norte</p>
+    <p>Todos os direitos reservados</p>
+    <p class="footer-credit">Desenvolvido por Lucas Alves</p>
   </footer>
 
   <!-- Painel lateral de atualizações (admin) -->
-  <button id="adminUpdatesToggle" class="admin-updates-toggle hidden" aria-expanded="false" aria-controls="adminUpdates">Atualizações</button>
+  <button id="adminUpdatesToggle" class="admin-updates-toggle hidden" aria-expanded="false" aria-controls="adminUpdates">
+    Atualizações
+    <span id="adminUpdatesBadge" class="admin-updates-badge hidden" aria-hidden="true">0</span>
+  </button>
   <aside id="adminUpdates" class="admin-updates hidden" aria-live="polite" aria-label="Atualizações pendentes">
     <div class="admin-updates__header">
-      <strong>Atualizações pendentes</strong>
+      <strong>Atualizações pendentes <span id="adminUpdatesTitleCount">(0)</span></strong>
       <button type="button" class="admin-updates__close" aria-label="Fechar">×</button>
     </div>
     <div id="adminUpdatesList" class="admin-updates__list"></div>
@@ -269,7 +309,7 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script>
     const firebaseConfig = {
-      apiKey: "Preencher com a Key",
+      apiKey: "AIzaSyD1iaPVDYOw-KQHV-582BtYSFewDiwHY1w",
       authDomain: "mural-oracao-web.firebaseapp.com",
       projectId: "mural-oracao-web",
       storageBucket: "mural-oracao-web.firebasestorage.app",
@@ -282,7 +322,7 @@
       window.firebaseAppInitialized = true;
     }
   </script>
-  <script src="script.js"></script>
+  <script src="script.js?v=deploy-20251010-2"></script>
 </body>
 </html>
 

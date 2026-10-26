@@ -1,4 +1,4 @@
-﻿// Seleciona elementos principais
+// Seleciona elementos principais
 const form = document.getElementById('pedidoForm');
 const listaPedidos = document.getElementById('listaPedidos');
 const toggleForm = document.getElementById('toggleForm');
@@ -9,13 +9,19 @@ const textareaPedido = document.getElementById('pedido');
 const pedidoCount = document.getElementById('pedidoCount');
 const btnEnviarPedido = document.getElementById('btnEnviarPedido');
 const btnEnviarPedidoMobile = document.getElementById('btnEnviarPedidoMobile');
+const filterYear = document.getElementById('filterYear');
+const filterMonth = document.getElementById('filterMonth');
+const filterSummary = document.getElementById('filterSummary');
+const filterShowAll = document.getElementById('filterShowAll');
 let pendingCloseForm = false;
 const thumbPin1 = document.getElementById('thumbPin1');
 const thumbPin2 = document.getElementById('thumbPin2');
 // Admin updates panel
 const adminUpdates = document.getElementById('adminUpdates');
 const adminUpdatesToggle = document.getElementById('adminUpdatesToggle');
+const adminUpdatesBadge = document.getElementById('adminUpdatesBadge');
 const adminUpdatesList = document.getElementById('adminUpdatesList');
+const adminUpdatesTitleCount = document.getElementById('adminUpdatesTitleCount');
 let SHOW_ADMIN_UPDATES_IN_CARD = false;
 
 let ultimoAnimacaoId = null; // animação por ID do documento
@@ -128,7 +134,9 @@ function getUsuarioId() {
 // Abrir/fechar formulário
 if (toggleForm) {
   toggleForm.addEventListener('click', () => {
-    const isHidden = getComputedStyle(pedidoForm).display === 'none';
+    const isHidden = formPreviewWrap
+      ? (getComputedStyle(formPreviewWrap).display === 'none')
+      : (getComputedStyle(pedidoForm).display === 'none');
     if (!isHidden) {
       // Tentando fechar o formulário: confirmar descarte se houver rascunho
       if (textareaPedido && textareaPedido.value.trim().length > 0) {
@@ -171,13 +179,114 @@ if (toggleForm) {
 
 // Firestore assinatura em tempo real
 let pedidosDocs = [];
+let unsubscribePedidos = null;
+const FILTRO_ANO_INICIAL = 2025;
+const MESES_PT_BR = [
+  'Janeiro',
+  'Fevereiro',
+  'Março',
+  'Abril',
+  'Maio',
+  'Junho',
+  'Julho',
+  'Agosto',
+  'Setembro',
+  'Outubro',
+  'Novembro',
+  'Dezembro',
+];
+let filtroAnoSelecionado = new Date().getFullYear();
+let filtroMesSelecionado = new Date().getMonth() + 1;
+let mostrarTodosPedidos = false;
+
+function formatarMesAnoSelecionado() {
+  return `${MESES_PT_BR[filtroMesSelecionado - 1]} de ${filtroAnoSelecionado}`;
+}
+
+function atualizarResumoFiltro() {
+  if (!filterSummary) return;
+  filterSummary.textContent = mostrarTodosPedidos
+    ? 'Exibindo todos os pedidos de oração.'
+    : `Exibindo pedidos de ${formatarMesAnoSelecionado()}.`;
+}
+
+function atualizarEstadoFiltro() {
+  if (filterShowAll) {
+    filterShowAll.textContent = mostrarTodosPedidos ? 'Voltar ao mês' : 'Mostrar todos';
+    filterShowAll.setAttribute('aria-pressed', String(mostrarTodosPedidos));
+  }
+  if (filterYear) filterYear.disabled = mostrarTodosPedidos;
+  if (filterMonth) filterMonth.disabled = mostrarTodosPedidos;
+}
+
+function popularFiltroPedidos() {
+  if (!filterYear || !filterMonth) return;
+  const anoAtual = new Date().getFullYear();
+  const anoFinal = Math.max(anoAtual, FILTRO_ANO_INICIAL);
+
+  filterYear.innerHTML = '';
+  for (let ano = anoFinal; ano >= FILTRO_ANO_INICIAL; ano -= 1) {
+    const option = document.createElement('option');
+    option.value = String(ano);
+    option.textContent = String(ano);
+    filterYear.appendChild(option);
+  }
+
+  filterMonth.innerHTML = '';
+  MESES_PT_BR.forEach((mes, index) => {
+    const option = document.createElement('option');
+    option.value = String(index + 1);
+    option.textContent = mes;
+    filterMonth.appendChild(option);
+  });
+
+  filterYear.value = String(filtroAnoSelecionado);
+  filterMonth.value = String(filtroMesSelecionado);
+  atualizarResumoFiltro();
+  atualizarEstadoFiltro();
+}
+
+function getIntervaloFiltroPedidos() {
+  const inicio = new Date(filtroAnoSelecionado, filtroMesSelecionado - 1, 1);
+  const fim = new Date(filtroAnoSelecionado, filtroMesSelecionado, 1);
+  return {
+    inicio: firebase.firestore.Timestamp.fromDate(inicio),
+    fim: firebase.firestore.Timestamp.fromDate(fim),
+  };
+}
+
+function aplicarFiltroPedidos() {
+  mostrarTodosPedidos = false;
+  filtroAnoSelecionado = Number(filterYear?.value) || new Date().getFullYear();
+  filtroMesSelecionado = Number(filterMonth?.value) || (new Date().getMonth() + 1);
+  atualizarResumoFiltro();
+  atualizarEstadoFiltro();
+  iniciarAssinaturaPedidos();
+}
+
+function alternarMostrarTodosPedidos() {
+  mostrarTodosPedidos = !mostrarTodosPedidos;
+  atualizarResumoFiltro();
+  atualizarEstadoFiltro();
+  iniciarAssinaturaPedidos();
+}
+
 function iniciarAssinaturaPedidos() {
   if (!window.db) {
     console.error('Firestore não inicializado.');
     return;
   }
-  window.db
-    .collection('pedidos')
+  if (typeof unsubscribePedidos === 'function') {
+    unsubscribePedidos();
+  }
+  let query = window.db.collection('pedidos');
+  if (!mostrarTodosPedidos) {
+    const { inicio, fim } = getIntervaloFiltroPedidos();
+    query = query
+      .where('createdAt', '>=', inicio)
+      .where('createdAt', '<', fim);
+  }
+  unsubscribePedidos = query
     .orderBy('createdAt', 'desc')
     .onSnapshot(
       (snap) => {
@@ -207,7 +316,15 @@ function iniciarAssinaturaAtualizacoes() {
     );
 }
 
-document.addEventListener('DOMContentLoaded', () => { iniciarAssinaturaPedidos(); iniciarAssinaturaAtualizacoes(); });
+filterYear?.addEventListener('change', aplicarFiltroPedidos);
+filterMonth?.addEventListener('change', aplicarFiltroPedidos);
+filterShowAll?.addEventListener('click', alternarMostrarTodosPedidos);
+
+document.addEventListener('DOMContentLoaded', () => {
+  popularFiltroPedidos();
+  iniciarAssinaturaPedidos();
+  iniciarAssinaturaAtualizacoes();
+});
 
 // -------- UX Formulário: auto-resize, contador, rascunho e preferências --------
 const DRAFT_KEY = 'draft_pedido_texto';
@@ -652,6 +769,15 @@ function carregarPedidos(opcoes = {}) {
   const { animarTodos = false } = opcoes;
   const lista = pedidosDocs.map((d, index) => ({ pedido: { ...d.data, _id: d.id }, index }));
   listaPedidos.innerHTML = '';
+  if (!lista.length) {
+    const vazio = document.createElement('p');
+    vazio.className = 'mural-empty';
+    vazio.textContent = mostrarTodosPedidos
+      ? 'Nenhum pedido encontrado.'
+      : `Nenhum pedido encontrado em ${formatarMesAnoSelecionado()}.`;
+    listaPedidos.appendChild(vazio);
+    return;
+  }
   lista.forEach(({ pedido, index }) => {
     const deveAnimar = animarTodos || (ultimoAnimacaoId && pedido._id === ultimoAnimacaoId);
     criarCard(pedido, index, deveAnimar);
@@ -1091,7 +1217,22 @@ async function recusarUpdate(updateId) {
 function renderAdminUpdatesPanel() {
   if (!adminUpdates || !adminUpdatesList) return;
   const isAdm = isAdmin();
+  const pendingCount = updatesDocs.length;
   adminUpdatesToggle?.classList.toggle('hidden', !isAdm);
+  adminUpdatesToggle?.classList.toggle('has-pending', isAdm && pendingCount > 0);
+  if (adminUpdatesBadge) {
+    adminUpdatesBadge.textContent = pendingCount > 99 ? '99+' : String(pendingCount);
+    adminUpdatesBadge.classList.toggle('hidden', !isAdm || pendingCount === 0);
+  }
+  if (adminUpdatesToggle) {
+    const label = pendingCount === 1
+      ? 'Abrir atualizações: 1 atualização pendente'
+      : `Abrir atualizações: ${pendingCount} atualizações pendentes`;
+    adminUpdatesToggle.setAttribute('aria-label', pendingCount > 0 ? label : 'Abrir atualizações');
+  }
+  if (adminUpdatesTitleCount) {
+    adminUpdatesTitleCount.textContent = `(${pendingCount})`;
+  }
   if (!isAdm) { adminUpdates.classList.add('hidden'); adminUpdatesList.innerHTML=''; return; }
   adminUpdatesList.innerHTML = '';
   if (!updatesDocs.length) {
@@ -1104,43 +1245,55 @@ function renderAdminUpdatesPanel() {
   updatesDocs.forEach((u) => {
     const item = document.createElement('div');
     item.className = 'admin-update-item';
-    const meta = document.createElement('div');
-    meta.className = 'meta';
     const ts = (u.data.pedidoCreatedAt && typeof u.data.pedidoCreatedAt.toDate === 'function')
       ? u.data.pedidoCreatedAt
       : (u.data.createdAt || null);
     const date = ts && typeof ts.toDate === 'function' ? ts.toDate().toLocaleString('pt-BR') : '';
-    meta.textContent = date ? `Criado em ${date}` : '';
-    const pedidoSnippetEl = document.createElement('div');
-pedidoSnippetEl.className = 'snippet';
-pedidoSnippetEl.textContent = (u.data.pedidoResumo || '').slice(0, 80);
 
-const who = document.createElement('div');
-who.className = 'meta';
-who.textContent = [u.data.pedidoNome || '', u.data.pedidoCidade || ''].filter(Boolean).join(' • ');
+    const pedidoSection = document.createElement('section');
+    pedidoSection.className = 'admin-update-section';
+    const pedidoLabel = document.createElement('span');
+    pedidoLabel.className = 'admin-update-label';
+    pedidoLabel.textContent = 'Pedido';
+    const pedidoSnippetEl = document.createElement('p');
+    pedidoSnippetEl.className = 'snippet';
+    pedidoSnippetEl.textContent = (u.data.pedidoResumo || '').slice(0, 120);
+    pedidoSection.appendChild(pedidoLabel);
+    pedidoSection.appendChild(pedidoSnippetEl);
 
+    const msgSection = document.createElement('section');
+    msgSection.className = 'admin-update-section admin-update-section--message';
+    const msgLabel = document.createElement('span');
+    msgLabel.className = 'admin-update-label';
+    msgLabel.textContent = 'Atualização enviada';
+    const msg = document.createElement('p');
+    msg.className = 'msg';
+    msg.textContent = u.data.message;
+    msgSection.appendChild(msgLabel);
+    msgSection.appendChild(msg);
 
-const msg = document.createElement('div');
-msg.className = 'msg';
-msg.textContent = u.data.message;
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    const who = [u.data.pedidoNome || '', u.data.pedidoCidade || ''].filter(Boolean).join(' • ');
+    meta.textContent = [who, date ? `Criado em ${date}` : ''].filter(Boolean).join(' | ');
+
     const actions = document.createElement('div');
     actions.className = 'actions';
     const aprovar = document.createElement('button');
-    aprovar.className = 'btn-acao';
+    aprovar.className = 'admin-update-action admin-update-action--approve';
     aprovar.type = 'button';
     aprovar.textContent = 'Marcar como lida';
     aprovar.addEventListener('click', () => reviewUpdate(u.id));
     const recusar = document.createElement('button');
-    recusar.className = 'btn-intercessores';
+    recusar.className = 'admin-update-action admin-update-action--reject';
     recusar.type = 'button';
     recusar.textContent = 'Recusar';
     recusar.addEventListener('click', () => recusarUpdate(u.id));
     actions.appendChild(aprovar);
     actions.appendChild(recusar);
-    item.appendChild(meta);
-    if (who.textContent) item.appendChild(who);
-    if (pedidoSnippetEl.textContent) item.appendChild(pedidoSnippetEl);
-    item.appendChild(msg);
+    item.appendChild(pedidoSection);
+    item.appendChild(msgSection);
+    if (meta.textContent) item.appendChild(meta);
     item.appendChild(actions);
     adminUpdatesList.appendChild(item);
   });

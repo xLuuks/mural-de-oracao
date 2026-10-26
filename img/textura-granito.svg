@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="320" viewBox="0 0 320 320">
+  <defs>
+    <filter id="corkTexture" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.82" numOctaves="2" seed="4" stitchTiles="stitch" result="noise"/>
+      <feColorMatrix in="noise" type="saturate" values="0" result="mono"/>
+      <feComponentTransfer in="mono" result="contrast">
+        <feFuncR type="gamma" amplitude="0.9" exponent="1.35" offset="0.1"/>
+        <feFuncG type="gamma" amplitude="0.9" exponent="1.35" offset="0.1"/>
+        <feFuncB type="gamma" amplitude="0.9" exponent="1.35" offset="0.1"/>
+      </feComponentTransfer>
+      <feBlend in="SourceGraphic" in2="contrast" mode="multiply" result="grainBlend"/>
+      <feTurbulence type="turbulence" baseFrequency="0.12" numOctaves="1" seed="9" stitchTiles="stitch" result="fleckNoise"/>
+      <feColorMatrix in="fleckNoise" type="luminanceToAlpha" result="fleckAlpha"/>
+      <feComponentTransfer in="fleckAlpha" result="fleckThresh">
+        <feFuncA type="table" tableValues="0 0 0.18 0.35 0.55"/>
+      </feComponentTransfer>
+      <feFlood flood-color="#f1d0aa" flood-opacity="0.5" result="fleckLight"/>
+      <feComposite in="fleckLight" in2="fleckThresh" operator="in" result="fleckPaint"/>
+      <feBlend in="grainBlend" in2="fleckPaint" mode="screen" result="lightened"/>
+      <feTurbulence type="turbulence" baseFrequency="0.16" numOctaves="1" seed="13" stitchTiles="stitch" result="darkNoise"/>
+      <feColorMatrix in="darkNoise" type="luminanceToAlpha" result="darkAlpha"/>
+      <feComponentTransfer in="darkAlpha" result="darkThresh">
+        <feFuncA type="table" tableValues="0 0 0.1 0.25 0.4"/>
+      </feComponentTransfer>
+      <feFlood flood-color="#a56a3b" flood-opacity="0.35" result="darkColor"/>
+      <feComposite in="darkColor" in2="darkThresh" operator="in" result="darkPaint"/>
+      <feBlend in="lightened" in2="darkPaint" mode="multiply"/>
+    </filter>
+  </defs>
+  <rect width="320" height="320" fill="#c89259" filter="url(#corkTexture)"/>
+</svg>
