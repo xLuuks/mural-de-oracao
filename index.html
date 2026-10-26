@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mural de Oração</title>
-  <meta name="description" content="Mural de Oração do Instituto Bíblico do Norte: envie e acompanhe pedidos, registre intercessões e veja atualizações.">
+  <meta name="description" content="Mural de Oração do Instituto Bíblico do Norte: envie e acompanhe pedidos de oração e registre intercessões.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Mural de Oração • IBN">
   <meta property="og:url" content="https://muraldeoracao.netlify.app/">
@@ -21,7 +21,7 @@
   <link rel="icon" type="image/png" href="img/icon.png">
   <link rel="shortcut icon" type="image/png" href="img/icon.png">
   <link rel="apple-touch-icon" href="img/icon.png">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=admin-view-20261026">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Merriweather:wght@700&family=Roboto&family=Patrick+Hand&display=swap" rel="stylesheet">
@@ -29,7 +29,7 @@
 <body>
   <header>
     <img src="img/ibn-header.png" alt="Logo IBN" class="logo">
-    <h1>Mural de Oração</h1>
+    <h1 id="pageTitle" tabindex="-1">Mural de Oração</h1>
     <p>Deixe seu pedido ou veja os pedidos já enviados.</p>
     <div class="admin-actions">
       <button id="adminToggle" class="admin-toggle" type="button" aria-label="Entrar como administrador">Entrar como administrador</button>
@@ -43,9 +43,9 @@
       <div class="form-preview-wrap" id="formPreviewWrap" style="display:none;">
       <form id="pedidoForm">
         <label for="nome" class="sr-only">Seu nome (opcional)</label>
-        <input type="text" id="nome" placeholder="Seu nome (opcional)">
+        <input type="text" id="nome" placeholder="Seu nome (opcional)" maxlength="200">
         <label for="cidade" class="sr-only">Sua cidade (opcional)</label>
-        <input type="text" id="cidade" placeholder="Sua cidade (opcional)">
+        <input type="text" id="cidade" placeholder="Sua cidade (opcional)" maxlength="200">
         <label for="pedido" class="sr-only">Escreva seu pedido</label>
         <textarea id="pedido" placeholder="Escreva seu pedido..." required aria-describedby="pedidoHelp pedidoCount" maxlength="600" enterkeyhint="done"></textarea>
         <div class="input-help">
@@ -147,7 +147,7 @@
         <div class="filter-copy">
           <span class="filter-eyebrow">Filtrar mural</span>
           <h2 id="filterTitle">Pedidos por período</h2>
-          <p id="filterSummary">Selecione um ano e mês para carregar os pedidos.</p>
+          <p id="filterSummary">Exibindo todos os pedidos de oração.</p>
         </div>
         <div class="filter-controls" aria-label="Filtro por ano e mês">
           <label for="filterYear">
@@ -158,7 +158,7 @@
             Mês
             <select id="filterMonth"></select>
           </label>
-          <button type="button" id="filterShowAll" class="filter-show-all" aria-pressed="false">Mostrar todos</button>
+          <button type="button" id="filterShowAll" class="filter-show-all" aria-pressed="true">Filtrar por mês</button>
         </div>
       </div>
     </section>
@@ -166,6 +166,17 @@
     <section id="mural">
       <h2>Pedidos de Oração</h2>
       <div id="listaPedidos"></div>
+    </section>
+    <section id="admin-section" class="admin-page" hidden aria-labelledby="adminTitle">
+      <div class="admin-page__heading">
+        <div>
+          <span class="filter-eyebrow">Área administrativa</span>
+          <h2 id="adminTitle" tabindex="-1">Gerenciar pedidos</h2>
+          <p>Edite os pedidos diretamente abaixo. As alterações são publicadas ao salvar.</p>
+        </div>
+        <span id="adminPedidoCount" class="admin-page__count" role="status">Carregando…</span>
+      </div>
+      <div id="adminPedidosList" class="admin-pedidos-list"></div>
     </section>
   </main>
 
@@ -178,7 +189,7 @@
       <p>Digite seu nome para se identificar. Deixe em branco para registrar como Anônimo.</p>
       <form id="modalOrarForm">
         <label for="modalNome" class="sr-only">Seu nome</label>
-        <input type="text" id="modalNome" placeholder="Seu nome (opcional)">
+        <input type="text" id="modalNome" placeholder="Seu nome (opcional)" maxlength="200">
         <div class="modal-actions">
           <button type="button" class="btn-sec" id="modalCancelar">Cancelar</button>
           <button type="submit" class="btn-prim" id="modalConfirmar">Registrar</button>
@@ -207,7 +218,7 @@
     <div class="modal-content" role="document">
       <button type="button" class="modal-close" aria-label="Fechar" data-modal-close>×</button>
       <h3 id="modalAdminTitulo">Entrar como administrador</h3>
-      <p>Faça login de administrador para gerenciar exclusões.</p>
+      <p>Faça login para editar, finalizar e remover os pedidos do mural.</p>
       <form id="modalAdminForm">
         <label for="modalAdminEmail" class="sr-only">E-mail</label>
         <input type="email" id="modalAdminEmail" placeholder="E-mail do administrador" autocomplete="username" required>
@@ -235,42 +246,13 @@
     </div>
   </div>
 
-  <!-- Modal Atualização de Pedido -->
-  <div id="modalUpdate" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modalUpdateTitulo">
-    <div class="modal-backdrop" data-modal-close></div>
-    <div class="modal-content" role="document">
-      <button type="button" class="modal-close" aria-label="Fechar" data-modal-close>×</button>
-      <h3 id="modalUpdateTitulo">Enviar atualização do pedido</h3>
-      <p>Tem alguma informação nova sobre este pedido? Escreva abaixo e enviaremos para análise do administrador.</p>
-      <form id="modalUpdateForm">
-        <label for="modalUpdateMsg" class="sr-only">Mensagem de atualização</label>
-        <textarea id="modalUpdateMsg" placeholder="Digite sua atualização..." maxlength="800" required></textarea>
-        <div class="modal-actions">
-          <button type="button" class="btn-sec" id="modalUpdateCancelar">Cancelar</button>
-          <button type="submit" class="btn-prim" id="modalUpdateEnviar">Enviar</button>
-        </div>
-      </form>
-    </div>
-  </div>
 
   <footer>
     <p>© 2026 Instituto Bíblico do Norte</p>
     <p>Todos os direitos reservados</p>
-    <p class="footer-credit">Desenvolvido por Lucas Alves</p>
+    <p class="footer-credit">Desenvolvido por <a href="https://github.com/xLuuks" target="_blank" rel="noopener noreferrer">Luks Alves</a></p>
   </footer>
 
-  <!-- Painel lateral de atualizações (admin) -->
-  <button id="adminUpdatesToggle" class="admin-updates-toggle hidden" aria-expanded="false" aria-controls="adminUpdates">
-    Atualizações
-    <span id="adminUpdatesBadge" class="admin-updates-badge hidden" aria-hidden="true">0</span>
-  </button>
-  <aside id="adminUpdates" class="admin-updates hidden" aria-live="polite" aria-label="Atualizações pendentes">
-    <div class="admin-updates__header">
-      <strong>Atualizações pendentes <span id="adminUpdatesTitleCount">(0)</span></strong>
-      <button type="button" class="admin-updates__close" aria-label="Fechar">×</button>
-    </div>
-    <div id="adminUpdatesList" class="admin-updates__list"></div>
-  </aside>
 
   <!-- Toasts -->
   <!-- Modal Finalizar Pedido -->
@@ -304,12 +286,18 @@
   </div>
   <div id="toast-container" aria-live="polite" aria-atomic="true"></div>
 
+  <button id="backToTop" class="back-to-top" type="button" aria-label="Voltar ao topo" title="Voltar ao topo" hidden>
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+      <path d="m6 12 6-6 6 6M12 6v12" />
+    </svg>
+  </button>
+
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script>
     const firebaseConfig = {
-      apiKey: "AIzaSyD1iaPVDYOw-KQHV-582BtYSFewDiwHY1w",
+      apiKey: "AIzaSyBAU5utkQWJLWhFUB-IEg3gkAqI9xwpRBI",
       authDomain: "mural-oracao-web.firebaseapp.com",
       projectId: "mural-oracao-web",
       storageBucket: "mural-oracao-web.firebasestorage.app",
@@ -322,7 +310,8 @@
       window.firebaseAppInitialized = true;
     }
   </script>
-  <script src="script.js?v=deploy-20251010-2"></script>
+  <script src="admin.js"></script>
+  <script src="script.js?v=admin-view-20261026"></script>
 </body>
 </html>
 

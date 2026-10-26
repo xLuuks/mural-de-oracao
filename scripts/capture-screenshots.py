@@ -9,7 +9,7 @@ import threading
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / '.tools'))
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright, expect
 
 
 class QuietHandler(http.server.SimpleHTTPRequestHandler):
@@ -37,17 +37,21 @@ def main():
             errors = []
             page.on('pageerror', lambda error: errors.append(str(error)))
             page.goto(f'http://127.0.0.1:{server.server_port}/', wait_until='networkidle')
+            expect(page.locator('#listaPedidos .card')).to_have_count(4)
             page.select_option('#filterYear', '2026')
             page.select_option('#filterMonth', '10')
             assert page.locator('#listaPedidos .card').count() == 3
             page.locator('#filterShowAll').click()
             assert page.locator('#listaPedidos .card').count() == 4
-            assert page.locator('#filterMonth').is_disabled()
+            assert page.locator('#filterMonth').is_enabled()
             page.locator('#filterShowAll').click()
             page.select_option('#filterMonth', '1')
             assert page.locator('.mural-empty').is_visible()
             page.select_option('#filterMonth', '10')
+            page.locator('#filterShowAll').click()
+            expect(page.locator('#listaPedidos .card')).to_have_count(4)
             page.evaluate('document.fonts.ready')
+            page.evaluate('window.scrollTo(0,0)')
             page.screenshot(path=str(output / 'mural-desktop.png'), full_page=True)
 
             page.locator('#toggleForm').click()
@@ -57,26 +61,18 @@ def main():
             page.locator('label').filter(has=page.locator('input[name="cor"][value="#c8e6c9"]')).click()
             page.locator('label').filter(has=page.locator('input[name="pinModelo"][value="pin1"]')).click()
             page.locator('label').filter(has=page.locator('input[name="pinCor"][value="azul"]')).click()
+            page.evaluate('window.scrollTo(0,0)')
             page.screenshot(path=str(output / 'formulario-desktop.png'), full_page=True)
             page.fill('#pedido', '')
             page.locator('#toggleForm').click()
 
-            page.evaluate('__demo.admin(); atualizarModoAdminUI(); carregarPedidos(); renderAdminUpdatesPanel()')
-            page.locator('#adminUpdatesToggle').click()
-            assert page.locator('#adminUpdatesBadge').inner_text() == '1'
-            page.screenshot(path=str(output / 'atualizacoes-admin.png'), full_page=True)
-            page.locator('.admin-updates__close').click()
+            page.evaluate('__demo.admin()')
+            page.wait_for_function("document.querySelectorAll('.admin-pedido').length === 4")
+            page.evaluate('window.scrollTo(0,0)')
+            page.screenshot(path=str(output / 'painel-admin.png'), full_page=True)
 
-            # A realtime insertion must not retarget an already-open deletion modal.
-            page.evaluate("abrirModalExcluir(0); __demo.rows.unshift({id:'demo-inserted',data:{...__demo.rows[0].data,createdAt:{toDate:()=>new Date(2026,9,25)}}}); __demo.emit()")
-            page.locator('#modalExcluirConfirmar').click()
-            page.wait_for_function('__demo.writes.length > 0')
-            findings['delete_modal_target_after_realtime_insert'] = page.evaluate('__demo.writes.at(-1).id')
-            page.evaluate('__demo.rows.shift(); __demo.emit(); firebase.auth().currentUser = null; atualizarModoAdminUI(); carregarPedidos(); renderAdminUpdatesPanel()')
-
-            page.evaluate("document.getElementById('pedido').value='   '; form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}))")
-            findings['submit_disabled_after_whitespace'] = page.locator('#btnEnviarPedido').is_disabled()
-            page.evaluate("document.getElementById('pedido').value=''")
+            page.evaluate('__demo.logout()')
+            expect(page.locator('#listaPedidos .card')).to_have_count(4)
 
             page.set_viewport_size({'width': 390, 'height': 844})
             for close_button in page.locator('.toast-close').all():

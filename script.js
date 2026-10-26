@@ -13,19 +13,30 @@ const filterYear = document.getElementById('filterYear');
 const filterMonth = document.getElementById('filterMonth');
 const filterSummary = document.getElementById('filterSummary');
 const filterShowAll = document.getElementById('filterShowAll');
+const backToTop = document.getElementById('backToTop');
+
+function atualizarBotaoTopo() {
+  if (backToTop) backToTop.hidden = window.scrollY < 300;
+}
+
+window.addEventListener('scroll', atualizarBotaoTopo, { passive: true });
+atualizarBotaoTopo();
+backToTop?.addEventListener('click', () => {
+  document.getElementById('pageTitle')?.focus({ preventScroll: true });
+  window.scrollTo({
+    top: 0,
+    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+  });
+});
+
 let pendingCloseForm = false;
 const thumbPin1 = document.getElementById('thumbPin1');
 const thumbPin2 = document.getElementById('thumbPin2');
-// Admin updates panel
-const adminUpdates = document.getElementById('adminUpdates');
-const adminUpdatesToggle = document.getElementById('adminUpdatesToggle');
-const adminUpdatesBadge = document.getElementById('adminUpdatesBadge');
-const adminUpdatesList = document.getElementById('adminUpdatesList');
-const adminUpdatesTitleCount = document.getElementById('adminUpdatesTitleCount');
-let SHOW_ADMIN_UPDATES_IN_CARD = false;
 
 let ultimoAnimacaoId = null; // animação por ID do documento
-let modalIndexAtual = null; // índice do pedido para o modal "Desejo orar"
+let modalPedidoIdAtual = null;
+let registrandoOracao = false;
+let enviandoPedido = false;
 
 // Modal Editar Pedido
 const modalEditar = document.getElementById('modalEditar');
@@ -78,6 +89,7 @@ const modalFinalizarConfirmar = document.getElementById('modalFinalizarConfirmar
 let finalizePedidoIdAtual = null;
 
 function abrirModalFinalizar(pedidoId) {
+  if (!isAdmin()) return;
   finalizePedidoIdAtual = pedidoId;
   if (!modalFinalizar) return;
   modalFinalizar.classList.remove('hidden');
@@ -94,6 +106,7 @@ modalFinalizarBackdrop?.addEventListener('click', fecharModalFinalizar);
 modalFinalizarCloseBtns?.forEach((b)=> b.addEventListener('click', fecharModalFinalizar));
 modalFinalizarCancelar?.addEventListener('click', fecharModalFinalizar);
 modalFinalizarConfirmar?.addEventListener('click', async () => {
+  if (!isAdmin()) return fecharModalFinalizar();
   if (!finalizePedidoIdAtual) return fecharModalFinalizar();
   try {
     await window.db.collection('pedidos').doc(finalizePedidoIdAtual).update({
@@ -108,7 +121,8 @@ modalFinalizarConfirmar?.addEventListener('click', async () => {
     fecharModalFinalizar();
   }
 });
-let modalExcluirIndex = null; // índice do pedido para exclusão
+let modalExcluirPedidoId = null;
+let excluindoPedido = false;
 
 // Identidade local do usuário (para limitar 1 oração por pedido)
 const USUARIO_ID_KEY = 'usuarioId';
@@ -180,6 +194,9 @@ if (toggleForm) {
 // Firestore assinatura em tempo real
 let pedidosDocs = [];
 let unsubscribePedidos = null;
+let pedidosModoAdmin = null;
+let pedidosEstado = 'loading';
+let pedidosConsultaVersao = 0;
 const FILTRO_ANO_INICIAL = 2025;
 const MESES_PT_BR = [
   'Janeiro',
@@ -197,7 +214,7 @@ const MESES_PT_BR = [
 ];
 let filtroAnoSelecionado = new Date().getFullYear();
 let filtroMesSelecionado = new Date().getMonth() + 1;
-let mostrarTodosPedidos = false;
+let mostrarTodosPedidos = true;
 
 function formatarMesAnoSelecionado() {
   return `${MESES_PT_BR[filtroMesSelecionado - 1]} de ${filtroAnoSelecionado}`;
@@ -212,11 +229,11 @@ function atualizarResumoFiltro() {
 
 function atualizarEstadoFiltro() {
   if (filterShowAll) {
-    filterShowAll.textContent = mostrarTodosPedidos ? 'Voltar ao mês' : 'Mostrar todos';
+    filterShowAll.textContent = mostrarTodosPedidos ? 'Filtrar por mês' : 'Mostrar todos';
     filterShowAll.setAttribute('aria-pressed', String(mostrarTodosPedidos));
   }
-  if (filterYear) filterYear.disabled = mostrarTodosPedidos;
-  if (filterMonth) filterMonth.disabled = mostrarTodosPedidos;
+  if (filterYear) filterYear.disabled = false;
+  if (filterMonth) filterMonth.disabled = false;
 }
 
 function popularFiltroPedidos() {
@@ -279,8 +296,13 @@ function iniciarAssinaturaPedidos() {
   if (typeof unsubscribePedidos === 'function') {
     unsubscribePedidos();
   }
+  pedidosModoAdmin = isAdmin();
+  const versao = ++pedidosConsultaVersao;
+  pedidosDocs = [];
+  pedidosEstado = 'loading';
+  carregarPedidos();
   let query = window.db.collection('pedidos');
-  if (!mostrarTodosPedidos) {
+  if (!mostrarTodosPedidos && !pedidosModoAdmin) {
     const { inicio, fim } = getIntervaloFiltroPedidos();
     query = query
       .where('createdAt', '>=', inicio)
@@ -290,29 +312,18 @@ function iniciarAssinaturaPedidos() {
     .orderBy('createdAt', 'desc')
     .onSnapshot(
       (snap) => {
+        if (versao !== pedidosConsultaVersao) return;
         pedidosDocs = snap.docs.map((d) => ({ id: d.id, data: d.data() }));
+        pedidosEstado = 'ready';
         carregarPedidos();
-        renderAdminUpdatesPanel();
       },
-      (err) => console.error('Erro no snapshot:', err)
-    );
-}
-// Assinatura de atualizações de pedidos (pendentes)
-let updatesDocs = [];
-function iniciarAssinaturaAtualizacoes() {
-  if (!window.db) return;
-  window.db
-    .collection('updates')
-    .orderBy('createdAt', 'desc')
-    .onSnapshot(
-      (snap) => {
-        updatesDocs = snap.docs
-          .map((d) => ({ id: d.id, data: d.data() }))
-          .filter((u) => (u.data && u.data.status) === 'pending');
+      (err) => {
+        if (versao !== pedidosConsultaVersao) return;
+        console.error('Erro no snapshot:', err);
+        pedidosEstado = 'error';
+        pedidosDocs = [];
         carregarPedidos();
-        renderAdminUpdatesPanel();
-      },
-      (err) => console.error('Erro no snapshot de updates:', err)
+      }
     );
 }
 
@@ -323,7 +334,6 @@ filterShowAll?.addEventListener('click', alternarMostrarTodosPedidos);
 document.addEventListener('DOMContentLoaded', () => {
   popularFiltroPedidos();
   iniciarAssinaturaPedidos();
-  iniciarAssinaturaAtualizacoes();
 });
 
 // -------- UX Formulário: auto-resize, contador, rascunho e preferências --------
@@ -663,12 +673,12 @@ function criarCard(pedido, index, animarEntrada = false) {
     orarBtn.textContent = 'Desejo orar';
     orarBtn.title = 'Registrar sua oração';
     orarBtn.disabled = false;
-    orarBtn.addEventListener('click', () => orarPorPedido(index));
+    orarBtn.addEventListener('click', () => orarPorPedido(_id));
   }
 
   const contador = document.createElement('span');
   contador.classList.add('contador-oracoes');
-  contador.textContent = String(intercessores.length);
+  contador.textContent = String(Number.isSafeInteger(pedido.oracoes) && pedido.oracoes >= 0 ? pedido.oracoes : intercessores.length);
   if (ultimoAnimacaoId !== null && _id && _id === ultimoAnimacaoId) {
     contador.classList.add('pulse');
     setTimeout(() => contador.classList.remove('pulse'), 450);
@@ -695,7 +705,7 @@ function criarCard(pedido, index, animarEntrada = false) {
     removerBtn.textContent = '×';
     removerBtn.setAttribute('aria-label', 'Remover pedido');
     removerBtn.title = 'Remover pedido';
-    removerBtn.addEventListener('click', () => abrirModalExcluir(index));
+    removerBtn.addEventListener('click', () => abrirModalExcluir(_id));
     cardFront.appendChild(removerBtn);
   }
 
@@ -729,22 +739,6 @@ function criarCard(pedido, index, animarEntrada = false) {
   }
   cardBack.appendChild(wrapper);
 
-  // Ação de atualização/edição
-  if (isAdmin()) {
-    const editarBtn = document.createElement('button');
-    editarBtn.type = 'button';
-    editarBtn.classList.add('btn-intercessores');
-    editarBtn.textContent = 'Editar';
-    editarBtn.addEventListener('click', () => abrirModalEditar(_id, texto));
-    cardBack.appendChild(editarBtn);
-  } else {
-    const atualizarBtn = document.createElement('button');
-    atualizarBtn.type = 'button';
-    atualizarBtn.classList.add('btn-acao');
-    atualizarBtn.textContent = 'Enviar atualização';
-    atualizarBtn.addEventListener('click', () => abrirModalUpdate(pedido._id));
-    cardBack.appendChild(atualizarBtn);
-  }
   // Botão voltar e finalizar (admin)
   const voltarBtn = document.createElement('button');
   voltarBtn.type = 'button';
@@ -766,9 +760,34 @@ function criarCard(pedido, index, animarEntrada = false) {
 }
 
 function carregarPedidos(opcoes = {}) {
+  if (isAdmin()) {
+    listaPedidos.replaceChildren();
+    renderPainelAdmin(pedidosDocs, pedidosEstado);
+    return;
+  }
   const { animarTodos = false } = opcoes;
   const lista = pedidosDocs.map((d, index) => ({ pedido: { ...d.data, _id: d.id }, index }));
   listaPedidos.innerHTML = '';
+  listaPedidos.setAttribute('aria-busy', String(pedidosEstado === 'loading'));
+  if (pedidosEstado !== 'ready') {
+    const estado = document.createElement('div');
+    estado.className = 'mural-empty';
+    estado.setAttribute('role', 'status');
+    estado.textContent = pedidosEstado === 'error'
+      ? 'Não foi possível carregar os pedidos. Verifique sua conexão.'
+      : 'Carregando pedidos…';
+    if (pedidosEstado === 'error') {
+      const tentar = document.createElement('button');
+      tentar.type = 'button';
+      tentar.className = 'btn-acao';
+      tentar.textContent = 'Tentar novamente';
+      tentar.addEventListener('click', iniciarAssinaturaPedidos);
+      estado.appendChild(document.createElement('br'));
+      estado.appendChild(tentar);
+    }
+    listaPedidos.appendChild(estado);
+    return;
+  }
   if (!lista.length) {
     const vazio = document.createElement('p');
     vazio.className = 'mural-empty';
@@ -785,26 +804,32 @@ function carregarPedidos(opcoes = {}) {
 }
 
 // Ação do botão "Desejo orar" abre o modal correspondente
-function orarPorPedido(index) {
-  abrirModalOrar(index);
+function orarPorPedido(pedidoId) {
+  abrirModalOrar(pedidoId);
 }
 
 // Enviar novo pedido
 form?.addEventListener('submit', async (e) => {
   e.preventDefault();
+  if (enviandoPedido) return;
+  const nome = document.getElementById('nome').value.trim();
+  const cidade = document.getElementById('cidade').value.trim();
+  const pedidoTexto = document.getElementById('pedido').value.trim();
+  const cor = document.querySelector('input[name="cor"]:checked')?.value || '#fff9c4';
+  if (!pedidoTexto) {
+    showToast('Escreva seu pedido antes de enviar.', { type: 'info' });
+    textareaPedido?.focus();
+    return;
+  }
+  enviandoPedido = true;
   if (btnEnviarPedido) {
     btnEnviarPedido.disabled = true;
     btnEnviarPedido.textContent = 'Enviando…';
+  }
   if (btnEnviarPedidoMobile) {
     btnEnviarPedidoMobile.disabled = true;
     btnEnviarPedidoMobile.textContent = 'Enviando.';
   }
-  }
-  const nome = document.getElementById('nome').value.trim();
-  const cidade = document.getElementById('cidade').value.trim();
-  const pedidoTexto = document.getElementById('pedido').value.trim();
-  const cor = document.querySelector("input[name=\"cor\"]:checked").value;
-  if (!pedidoTexto) return;
 
   const modelo = (document.querySelector("input[name=\"pinModelo\"]:checked")?.value || document.getElementById("pinModelo")?.value || "").trim();
   const corPin = (document.querySelector("input[name=\"pinCor\"]:checked")?.value || document.getElementById("pinCor")?.value || "").trim();
@@ -836,6 +861,7 @@ form?.addEventListener('submit', async (e) => {
     console.error('Erro ao criar pedido:', err);
     showToast('Não foi possível enviar o pedido agora. Tente novamente.', { type: 'error' });
   } finally {
+    enviandoPedido = false;
     if (btnEnviarPedido) {
       btnEnviarPedido.disabled = false;
       btnEnviarPedido.textContent = 'Enviar Pedido';
@@ -859,8 +885,9 @@ const modalForm = document.getElementById('modalOrarForm');
 const modalNome = document.getElementById('modalNome');
 const modalCancelar = document.getElementById('modalCancelar');
 
-function abrirModalOrar(index) {
-  modalIndexAtual = index;
+function abrirModalOrar(pedidoId) {
+  if (registrandoOracao) return;
+  modalPedidoIdAtual = pedidoId;
   if (!modal) return;
   modal.classList.remove('hidden');
   modalNome.value = '';
@@ -871,7 +898,7 @@ function fecharModalOrar() {
   if (!modal) return;
   modal.classList.add('hidden');
   document.removeEventListener('keydown', escHandler);
-  modalIndexAtual = null;
+  modalPedidoIdAtual = null;
 }
 function escHandler(e) {
   if (e.key === 'Escape') fecharModalOrar();
@@ -882,38 +909,51 @@ modalCancelar?.addEventListener('click', fecharModalOrar);
 
 modalForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
-  if (modalIndexAtual === null) return fecharModalOrar();
-  const meta = pedidosDocs[modalIndexAtual];
-  if (!meta) return fecharModalOrar();
+  if (registrandoOracao) return;
+  const pedidoId = modalPedidoIdAtual;
+  if (!pedidoId) return fecharModalOrar();
 
   const usuarioId = getUsuarioId();
   const nomeIntercessor = (modalNome.value || '').trim() || 'Anônimo';
-  const ref = window.db.collection('pedidos').doc(meta.id);
+  const ref = window.db.collection('pedidos').doc(pedidoId);
+  registrandoOracao = true;
+  const confirmar = document.getElementById('modalConfirmar');
+  if (confirmar) confirmar.disabled = true;
 
   try {
     await window.db.runTransaction(async (t) => {
       const snap = await t.get(ref);
-      const data = snap.data() || {};
+      if (!snap.exists) throw new Error('missing');
+      const data = snap.data();
+      if (data.status === 'finalizado') throw new Error('finalizado');
       const ids = Array.isArray(data.intercessorIds) ? data.intercessorIds : [];
       if (ids.includes(usuarioId)) throw new Error('already');
-      const novaQtde = (data.oracoes || 0) + 1;
+      const nomes = Array.isArray(data.intercessores) ? data.intercessores : [];
+      const quantidade = Number.isSafeInteger(data.oracoes) && data.oracoes >= 0
+        ? data.oracoes : Math.max(nomes.length, ids.length);
+      const novaQtde = quantidade + 1;
       t.update(ref, {
         intercessorIds: firebase.firestore.FieldValue.arrayUnion(usuarioId),
-        intercessores: firebase.firestore.FieldValue.arrayUnion(nomeIntercessor),
+        intercessores: [...nomes, nomeIntercessor],
         oracoes: novaQtde,
       });
     });
-    ultimoAnimacaoId = meta.id;
+    ultimoAnimacaoId = pedidoId;
     fecharModalOrar();
     showToast('Oração registrada. Obrigado!', { type: 'success' });
   } catch (err) {
     if (String(err.message || err) === 'already') {
       showToast('Você já registrou uma oração para este pedido. Obrigado!', { type: 'info' });
+    } else if (err.message === 'missing' || err.message === 'finalizado') {
+      showToast(err.message === 'missing' ? 'Este pedido foi removido.' : 'Este pedido já foi finalizado.', { type: 'info' });
     } else {
       console.error('Erro ao registrar oração:', err);
       showToast('Não foi possível registrar agora.', { type: 'error' });
     }
     fecharModalOrar();
+  } finally {
+    registrandoOracao = false;
+    if (confirmar) confirmar.disabled = false;
   }
 });
 
@@ -924,12 +964,13 @@ const modalExcluirCloseBtns = modalExcluir?.querySelectorAll('[data-modal-close]
 const modalExcluirCancelar = document.getElementById('modalExcluirCancelar');
 const modalExcluirConfirmar = document.getElementById('modalExcluirConfirmar');
 
-function abrirModalExcluir(index) {
+function abrirModalExcluir(pedidoId) {
+  if (excluindoPedido) return;
   if (!isAdmin()) {
     abrirModalAdmin();
     return;
   }
-  modalExcluirIndex = index;
+  modalExcluirPedidoId = pedidoId;
   if (!modalExcluir) return;
   modalExcluir.classList.remove('hidden');
   document.addEventListener('keydown', escExcluirHandler);
@@ -938,7 +979,7 @@ function fecharModalExcluir() {
   if (!modalExcluir) return;
   modalExcluir.classList.add('hidden');
   document.removeEventListener('keydown', escExcluirHandler);
-  modalExcluirIndex = null;
+  modalExcluirPedidoId = null;
 }
 function escExcluirHandler(e) {
   if (e.key === 'Escape') fecharModalExcluir();
@@ -947,16 +988,25 @@ modalExcluirBackdrop?.addEventListener('click', fecharModalExcluir);
 modalExcluirCloseBtns?.forEach((b) => b.addEventListener('click', fecharModalExcluir));
 modalExcluirCancelar?.addEventListener('click', fecharModalExcluir);
 modalExcluirConfirmar?.addEventListener('click', async () => {
-  if (modalExcluirIndex === null) return fecharModalExcluir();
-  const meta = pedidosDocs[modalExcluirIndex];
-  if (!meta) return fecharModalExcluir();
+  if (excluindoPedido) return;
+  const pedidoId = modalExcluirPedidoId;
+  if (!pedidoId) return fecharModalExcluir();
+  if (!isAdmin()) {
+    fecharModalExcluir();
+    abrirModalAdmin();
+    return;
+  }
+  excluindoPedido = true;
+  modalExcluirConfirmar.disabled = true;
   try {
-    await window.db.collection('pedidos').doc(meta.id).delete();
+    await window.db.collection('pedidos').doc(pedidoId).delete();
     showToast('Pedido removido.', { type: 'success' });
   } catch (err) {
     console.error('Erro ao remover:', err);
     showToast('Não foi possível remover agora.', { type: 'error' });
   } finally {
+    excluindoPedido = false;
+    modalExcluirConfirmar.disabled = false;
     fecharModalExcluir();
   }
 });
@@ -1022,6 +1072,7 @@ function isAdmin() {
 }
 
 function atualizarModoAdminUI() {
+  mostrarVisaoAdmin(isAdmin());
   const btn = document.getElementById('adminToggle');
   if (!btn) return;
   const user = firebase.auth().currentUser;
@@ -1050,7 +1101,6 @@ adminToggleBtn?.addEventListener('click', () => {
     firebase.auth().signOut().finally(() => {
       atualizarModoAdminUI();
       carregarPedidos();
-      renderAdminUpdatesPanel();
       showToast('Admin desconectado.', { type: 'info' });
     });
   } else {
@@ -1089,7 +1139,7 @@ modalAdminCancelar?.addEventListener('click', fecharModalAdmin);
 modalAdminForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const email = (modalAdminEmail.value || '').trim();
-  const senha = (modalAdminSenha.value || '').trim();
+  const senha = modalAdminSenha.value || '';
   if (!email || !senha) return;
   try {
     const cred = await firebase.auth().signInWithEmailAndPassword(email, senha);
@@ -1101,7 +1151,6 @@ modalAdminForm?.addEventListener('submit', async (e) => {
     fecharModalAdmin();
     atualizarModoAdminUI();
     carregarPedidos();
-        renderAdminUpdatesPanel();
     showToast('Admin conectado.', { type: 'success' });
   } catch (err) {
     console.error('Erro ao autenticar:', err);
@@ -1116,7 +1165,6 @@ document.addEventListener('keydown', (e) => {
       firebase.auth().signOut().finally(() => {
         atualizarModoAdminUI();
         carregarPedidos();
-        renderAdminUpdatesPanel();
       });
     } else {
       abrirModalAdmin();
@@ -1125,188 +1173,19 @@ document.addEventListener('keydown', (e) => {
 });
 
 // Atualiza UI quando estado de auth muda
-firebase.auth().onAuthStateChanged(() => {  atualizarModoAdminUI();  carregarPedidos();  renderAdminUpdatesPanel();});
-
-
-
-
-
-
-// ----- Modal Atualização -----
-const modalUpdate = document.getElementById('modalUpdate');
-const modalUpdateBackdrop = modalUpdate?.querySelector('.modal-backdrop');
-const modalUpdateCloseBtns = modalUpdate?.querySelectorAll('[data-modal-close]');
-const modalUpdateForm = document.getElementById('modalUpdateForm');
-const modalUpdateMsg = document.getElementById('modalUpdateMsg');
-const modalUpdateCancelar = document.getElementById('modalUpdateCancelar');
-let updatePedidoIdAtual = null;
-
-function abrirModalUpdate(pedidoId) {
-  updatePedidoIdAtual = pedidoId;
-  if (!modalUpdate) return;
-  modalUpdate.classList.remove('hidden');
-  modalUpdateMsg.value = '';
-  setTimeout(() => modalUpdateMsg.focus(), 0);
-  document.addEventListener('keydown', escUpdateHandler);
-}
-function fecharModalUpdate() {
-  if (!modalUpdate) return;
-  modalUpdate.classList.add('hidden');
-  document.removeEventListener('keydown', escUpdateHandler);
-  updatePedidoIdAtual = null;
-}
-function escUpdateHandler(e) { if (e.key === 'Escape') fecharModalUpdate(); }
-modalUpdateBackdrop?.addEventListener('click', fecharModalUpdate);
-modalUpdateCloseBtns?.forEach((b) => b.addEventListener('click', fecharModalUpdate));
-modalUpdateCancelar?.addEventListener('click', fecharModalUpdate);
-
-modalUpdateForm?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const msg = (modalUpdateMsg.value || '').trim();
-  if (!msg || !updatePedidoIdAtual) return;
-  try {
-    const pedidoRef = window.db.collection('pedidos').doc(updatePedidoIdAtual);
-    const pedidoSnap = await pedidoRef.get();
-    const pedidoData = pedidoSnap.data() || {};
-    const pedidoCreatedAt = pedidoData.createdAt || null;
-    const pedidoResumo = typeof pedidoData.texto === 'string' ? pedidoData.texto.slice(0, 80) : '';
-    const pedidoNome = typeof pedidoData.nome === 'string' ? pedidoData.nome : '';
-    const pedidoCidade = typeof pedidoData.cidade === 'string' ? pedidoData.cidade : '';
-
-    await window.db.collection('updates').add({
-      pedidoId: updatePedidoIdAtual,
-      message: msg,
-      status: 'pending',
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      submittedBy: getUsuarioId(),
-      pedidoCreatedAt,
-      pedidoResumo,
-      pedidoNome,
-      pedidoCidade,
-      });
-    showToast('Atualização enviada para análise.', { type: 'success' });
-    fecharModalUpdate();
-  } catch (err) {
-    console.error('Erro ao enviar atualização:', err);
-    showToast('Não foi possível enviar a atualização agora.', { type: 'error' });
+firebase.auth().onAuthStateChanged(() => {
+  atualizarModoAdminUI();
+  carregarPedidos();
+  if (pedidosModoAdmin !== isAdmin()) iniciarAssinaturaPedidos();
+  if (!isAdmin()) {
+    fecharModalExcluir();
+    fecharModalEditar();
+    fecharModalFinalizar();
   }
 });
 
-async function reviewUpdate(updateId) {
-  try {
-    await window.db.collection('updates').doc(updateId).update({ status: 'reviewed' });
-    showToast('Atualização marcada como lida.', { type: 'success' });
-  } catch (err) {
-    console.error('Erro ao marcar como lida:', err);
-    showToast('Falha ao marcar atualização.', { type: 'error' });
-  }
-}
-
-async function recusarUpdate(updateId) {
-  try {
-    await window.db.collection('updates').doc(updateId).update({ status: 'rejected' });
-    showToast('Atualização recusada.', { type: 'info' });
-  } catch (err) {
-    console.error('Erro ao recusar atualização:', err);
-    showToast('Falha ao recusar atualização.', { type: 'error' });
-  }
-}
 
 
 
-function renderAdminUpdatesPanel() {
-  if (!adminUpdates || !adminUpdatesList) return;
-  const isAdm = isAdmin();
-  const pendingCount = updatesDocs.length;
-  adminUpdatesToggle?.classList.toggle('hidden', !isAdm);
-  adminUpdatesToggle?.classList.toggle('has-pending', isAdm && pendingCount > 0);
-  if (adminUpdatesBadge) {
-    adminUpdatesBadge.textContent = pendingCount > 99 ? '99+' : String(pendingCount);
-    adminUpdatesBadge.classList.toggle('hidden', !isAdm || pendingCount === 0);
-  }
-  if (adminUpdatesToggle) {
-    const label = pendingCount === 1
-      ? 'Abrir atualizações: 1 atualização pendente'
-      : `Abrir atualizações: ${pendingCount} atualizações pendentes`;
-    adminUpdatesToggle.setAttribute('aria-label', pendingCount > 0 ? label : 'Abrir atualizações');
-  }
-  if (adminUpdatesTitleCount) {
-    adminUpdatesTitleCount.textContent = `(${pendingCount})`;
-  }
-  if (!isAdm) { adminUpdates.classList.add('hidden'); adminUpdatesList.innerHTML=''; return; }
-  adminUpdatesList.innerHTML = '';
-  if (!updatesDocs.length) {
-    const empty = document.createElement('p');
-    empty.textContent = 'Sem atualizações pendentes.';
-    empty.className = 'meta';
-    adminUpdatesList.appendChild(empty);
-    return;
-  }
-  updatesDocs.forEach((u) => {
-    const item = document.createElement('div');
-    item.className = 'admin-update-item';
-    const ts = (u.data.pedidoCreatedAt && typeof u.data.pedidoCreatedAt.toDate === 'function')
-      ? u.data.pedidoCreatedAt
-      : (u.data.createdAt || null);
-    const date = ts && typeof ts.toDate === 'function' ? ts.toDate().toLocaleString('pt-BR') : '';
 
-    const pedidoSection = document.createElement('section');
-    pedidoSection.className = 'admin-update-section';
-    const pedidoLabel = document.createElement('span');
-    pedidoLabel.className = 'admin-update-label';
-    pedidoLabel.textContent = 'Pedido';
-    const pedidoSnippetEl = document.createElement('p');
-    pedidoSnippetEl.className = 'snippet';
-    pedidoSnippetEl.textContent = (u.data.pedidoResumo || '').slice(0, 120);
-    pedidoSection.appendChild(pedidoLabel);
-    pedidoSection.appendChild(pedidoSnippetEl);
 
-    const msgSection = document.createElement('section');
-    msgSection.className = 'admin-update-section admin-update-section--message';
-    const msgLabel = document.createElement('span');
-    msgLabel.className = 'admin-update-label';
-    msgLabel.textContent = 'Atualização enviada';
-    const msg = document.createElement('p');
-    msg.className = 'msg';
-    msg.textContent = u.data.message;
-    msgSection.appendChild(msgLabel);
-    msgSection.appendChild(msg);
-
-    const meta = document.createElement('div');
-    meta.className = 'meta';
-    const who = [u.data.pedidoNome || '', u.data.pedidoCidade || ''].filter(Boolean).join(' • ');
-    meta.textContent = [who, date ? `Criado em ${date}` : ''].filter(Boolean).join(' | ');
-
-    const actions = document.createElement('div');
-    actions.className = 'actions';
-    const aprovar = document.createElement('button');
-    aprovar.className = 'admin-update-action admin-update-action--approve';
-    aprovar.type = 'button';
-    aprovar.textContent = 'Marcar como lida';
-    aprovar.addEventListener('click', () => reviewUpdate(u.id));
-    const recusar = document.createElement('button');
-    recusar.className = 'admin-update-action admin-update-action--reject';
-    recusar.type = 'button';
-    recusar.textContent = 'Recusar';
-    recusar.addEventListener('click', () => recusarUpdate(u.id));
-    actions.appendChild(aprovar);
-    actions.appendChild(recusar);
-    item.appendChild(pedidoSection);
-    item.appendChild(msgSection);
-    if (meta.textContent) item.appendChild(meta);
-    item.appendChild(actions);
-    adminUpdatesList.appendChild(item);
-  });
-}
-
-adminUpdatesToggle?.addEventListener('click', () => {
-  if (!isAdmin()) return;
-  const isOpen = !adminUpdates.classList.contains('hidden');
-  adminUpdates.classList.toggle('hidden', isOpen);
-  adminUpdatesToggle.setAttribute('aria-expanded', String(!isOpen));
-  if (!isOpen) renderAdminUpdatesPanel();
-});
-adminUpdates?.querySelector('.admin-updates__close')?.addEventListener('click', () => {
-  adminUpdates.classList.add('hidden');
-  adminUpdatesToggle?.setAttribute('aria-expanded', 'false');
-});

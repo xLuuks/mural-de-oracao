@@ -1,0 +1,94 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.uid == 'qIxfD3Xeu7SvKGb9zf6APMhpFow2';
+    }
+
+    function validString(value, maximum) {
+      return value is string && value.size() <= maximum;
+    }
+
+    function validText(value, maximum) {
+      return validString(value, maximum)
+        && value.matches('(?s).*\\S.*');
+    }
+
+    function validCreation() {
+      let data = request.resource.data;
+      let fields = ['nome', 'cidade', 'texto', 'cor', 'pinClass',
+        'intercessores', 'intercessorIds', 'oracoes', 'createdAt'];
+      return data.keys().hasAll(fields)
+        && data.keys().hasOnly(fields)
+        && validString(data.nome, 200)
+        && validString(data.cidade, 200)
+        && validText(data.texto, 600)
+        && data.cor in ['#fff9c4', '#c8e6c9', '#bbdefb', '#f8bbd0', '#ffe0b2']
+        && data.pinClass is string
+        && data.pinClass.matches('(|pin[12](-(vermelho|amarelo|azul|laranja|rosa|roxo|verde))?)')
+        && data.intercessores == []
+        && data.intercessorIds == []
+        && data.oracoes is int && data.oracoes == 0
+        && data.createdAt == request.time;
+    }
+
+    function previousCount(names, ids) {
+      let count = resource.data.get('oracoes', null);
+      return count is int && count >= 0 && count <= 9007199254740991
+        ? count : (names.size() >= ids.size() ? names.size() : ids.size());
+    }
+
+    function validPrayer() {
+      let data = request.resource.data;
+      let names = resource.data.get('intercessores', []);
+      let ids = resource.data.get('intercessorIds', []);
+      return resource.data.get('status', null) != 'finalizado'
+        && data.diff(resource.data).affectedKeys().hasOnly([
+          'intercessores', 'intercessorIds', 'oracoes'
+        ])
+        && names is list && ids is list
+        && data.intercessores is list && data.intercessorIds is list
+        && data.intercessores.size() == names.size() + 1
+        && data.intercessorIds.size() == ids.size() + 1
+        && validText(data.intercessores[names.size()], 200)
+        && validText(data.intercessorIds[ids.size()], 200)
+        && !(data.intercessorIds[ids.size()] in ids)
+        // Equality with concat preserves order, repeated names and every old entry.
+        && data.intercessores == names.concat([data.intercessores[names.size()]])
+        && data.intercessorIds == ids.concat([data.intercessorIds[ids.size()]])
+        && data.oracoes is int
+        && data.oracoes == previousCount(names, ids) + 1;
+    }
+
+    function validAdminEdit() {
+      let data = request.resource.data;
+      let changed = data.diff(resource.data).affectedKeys();
+      return changed.hasOnly(['nome', 'cidade', 'texto'])
+        && data.keys().hasAll(['nome', 'cidade', 'texto'])
+        && validString(data.nome, 200)
+        && validString(data.cidade, 200)
+        && validText(data.texto, 2000);
+    }
+
+    function validFinalization() {
+      let data = request.resource.data;
+      return data.diff(resource.data).affectedKeys().hasOnly(['status', 'attendedAt'])
+        && data.status == 'finalizado'
+        && data.attendedAt == request.time;
+    }
+
+    match /pedidos/{id} {
+      allow read: if true;
+      allow create: if validCreation();
+      allow update: if validPrayer()
+        || (isAdmin() && (validAdminEdit() || validFinalization()));
+      allow delete: if isAdmin();
+    }
+
+    // Retained legacy messages are inaccessible to client SDKs.
+    match /updates/{id} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -6,6 +6,10 @@ __pycache__/
 !.env.example
 node_modules/
 .netlify/
+firebase-debug.log
+firebase-debug.*.log
+firestore-debug.log
+ui-debug.log
 script.js.bak-*
 script_utf8_tmp.js
 index_snapshot.txt
